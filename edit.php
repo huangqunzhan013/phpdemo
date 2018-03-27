@@ -25,6 +25,7 @@ $row=mysql_fetch_array($result);
         <form action="action.php?action=modify" method="post" enctype="multipart/form-data">
         <input type="hidden" name="id" value="<?= $row['id'] ?>">
         <input type="hidden" name="oldpic" value="<?= $row['pic'] ?>">
+        <!-- 隐藏域上传旧图片便于删除旧图片 -->
         <table  width="450" border="1" style="border-collapse:collapse;">
         <tr>
         <td align="right">商品名称：</td>

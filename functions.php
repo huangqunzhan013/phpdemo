@@ -16,12 +16,12 @@ function uploadFile($filename,$path,$typelist=null){
     if (empty($typelist)){
         $typelist=array("image/gif","image/jpg","image/jpeg","image/png");
     }
-    $res=array("error"=>false);//存放返回的结果
+    $res=array("error"=>false,"info"=>"");//存放返回的结果
     //过滤上传文件的错误号
     if ($upfile["error"]>0){
         switch ($upfile["error"]){
             case 1:
-                $res["info"]="上传的文件超过了php.ini中upload_max_filesize选项现在";
+                $res["info"]="上传的文件超过了php.ini中upload_max_filesize选项限制";
                 break;
             case 2:
                 $res["info"]="上传的文件大小超过了HTML表单中MAX_FILE_SIZE选项";
@@ -58,13 +58,17 @@ function uploadFile($filename,$path,$typelist=null){
     }
     
     //初始化信息（为图片产生一个随机的名字）
+    //$path_parts = pathinfo('/www/htdocs/inc/lib.inc.php');
+    //echo $path_parts['extension']   输出php
     $fileinfo=pathinfo($upfile["name"]);
     do{
         $newfile=date("YmdHis").rand(1000,9999).".".$fileinfo["extension"];
     }while (file_exists($newfile)) ;
         
         //执行上传处理
+        //is_uploaded_file — 判断文件是否是通过 HTTP POST 上传的
         if (is_uploaded_file($upfile["tmp_name"])){
+            //move_uploaded_file() 函数将上传的文件移动到新位置。
             if (move_uploaded_file($upfile["tmp_name"], $path."/".$newfile)){
                 //将上传成功后的文件名赋值给返回数组
                 $res["info"]=$newfile;
@@ -92,8 +96,7 @@ function uploadFile($filename,$path,$typelist=null){
  * 返回后的图片名称，带路径，如a.jpg=>s_a.jpg
  * return true 返回值，true表示图片成功
  * */
-//function imageUpdateSize($picname,$maxx=100,$maxy=100,$pre="s_"){
-function imageUpdateSize($picname,$maxx=100,$maxy=100){
+function imageUpdateSize($picname,$maxx=100,$maxy=100,$pre="s_"){
     //处理图片路径
     //$path=rtrim($path,"/")."/";
     $info=getimagesize($picname);//获取图片的基本信息
@@ -101,7 +104,7 @@ function imageUpdateSize($picname,$maxx=100,$maxy=100){
     $height=$info[1];//获取高度
     
     
-    //获取图片的类型并为此创建对应的图片资源
+    //获取图片的类型并为此创建对应的原图片资源
     switch ($info[2]){
         case 1://gif
             $im=imagecreatefromgif($picname);
@@ -131,7 +134,9 @@ function imageUpdateSize($picname,$maxx=100,$maxy=100){
     $resim=imagecreatetruecolor($w, $h);
     //执行缩放图片
     imagecopyresampled($resim, $im, 0, 0, 0, 0, $w, $h, $width, $height);
-    //保存缩放图片
+    //创建目标图片保存缩放图片
+    $pathinfo=pathinfo($picname);
+    $npathinfo=$pathinfo["dirname"]."/".$pre.$pathinfo["basename"];
     switch ($info[2]){
         case 1:
             imagegif($resim,$picname);
@@ -147,4 +152,73 @@ function imageUpdateSize($picname,$maxx=100,$maxy=100){
     imagedestroy($resim);
     imagedestroy($im);
     return true;
+}
+
+
+//图片添加水印
+/*
+ * $picname 图片名称
+ * $wmpic 水印图片
+ * */
+function addImageWaterMark($picname,$wmpic,$pre="ss_"){
+    $picnameinfo=getimagesize($picname);
+    $wmpicinfo=getimagesize($wmpic);
+    var_dump($wmpicinfo);
+
+    $pw=$picnameinfo[0];
+    $ph=$picnameinfo[1];
+    $wmw=$wmpicinfo[0];
+    $wmh=$wmpicinfo[1];
+
+    switch ($picnameinfo[2]){
+        case 1:
+            $im=imagecreatefromgif($picname);
+            break;
+        case 2:
+            $im=imagecreatefromjpeg($picname);
+            break;
+        case 3:
+            $im=imagecreatefrompng($picname);
+            break;
+        default:
+            die("图片类型错误");
+    }
+    switch ($wmpicinfo[2]){
+        case 1:
+            $wim=imagecreatefromgif($wmpic);
+            break;
+        case 2:
+            $wim=imagecreatefromjpeg($wmpic);
+            break;
+        case 3:
+            $wim=imagecreatefrompng($wmpic);
+            break;
+        default:
+            die("水印图片类型错误");
+    }
+
+    //imagecopyresampled($im, $wim, $pw-$wmw, $ph-$wmh, 0, 0, $wmw, $wmh, $wmw, $wmh);
+    imagecopy($im, $wim, $pw-$wmw, $ph-$wmh, 0, 0, $wmw, $wmh);
+
+    $pathinfo=pathinfo($picname);
+    $npathinfo=$pathinfo["dirname"]."/".$pre.$pathinfo["basename"];
+    switch ($picnameinfo[2]){
+        case 1:
+            imagegif($im,$npathinfo);
+            break;
+        case 2:
+            $a=imagejpeg($im,$npathinfo);
+            break;
+        case 3:
+            imagepng($im,$npathinfo);
+            break;
+        default:
+            die("创建图片类型错误");
+    }
+    //释放资源
+    imagedestroy($im);
+    imagedestroy($wim);
+
+    return $npathinfo;
+
 }

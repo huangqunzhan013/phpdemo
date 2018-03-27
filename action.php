@@ -77,6 +77,7 @@ switch ($_REQUEST['action']){
         $result=mysql_query($sql);
         if (mysql_affected_rows($link)>0){
             if ($_FILES['pic']['error']!=4){
+                //删除文件
                 unlink("./uploads/{$_REQUEST['oldpic']}");
             }
             echo '修改成功';
